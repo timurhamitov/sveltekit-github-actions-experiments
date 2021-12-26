@@ -1,0 +1,37 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - id: vars
+        run: echo '::set-output name=version::sveltekit-experiments-${{ github.run_id }}-${{ github.run_attempt }}'
+
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.4.0
+        with:
+          access_token: ${{ github.token }}
+
+      - uses: actions/checkout@v2
+      - uses: umidbekk/actions/npm/install@v1
+
+      - name: Build
+        run: npm run build
+
+      - name: Zip artifact for release
+        run: cd ./.svelte-kit/output && zip -r ../${{ steps.vars.outputs.version }}.zip * && cd -
+
+      - uses: mathieudutour/github-tag-action@v5.6
+        with:
+          custom_tag: ${{ steps.vars.outputs.version }}
+          github_token: ${{ secrets.GHP_TOKEN }}
+
+      - uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.vars.outputs.version }}
+          files: ${{ steps.vars.outputs.version }}.zip
